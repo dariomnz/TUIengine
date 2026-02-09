@@ -10,9 +10,8 @@
 namespace TUIE {
 void handle_sigwinch(int) { engine::instance().on_resize(); }
 
-Terminal::Terminal() {
+Terminal::Terminal() : size(get_terminal_size()) {
     std::signal(SIGWINCH, handle_sigwinch);
-    size = get_terminal_size();
     enable_raw_mode();
     hide_cursor();
     enter_fullscreen();
