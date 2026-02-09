@@ -1,0 +1,73 @@
+#include "Terminal.hpp"
+
+#include <sys/ioctl.h>
+
+#include <csignal>
+
+#include "FixedOStream.hpp"
+#include "TUIengine.hpp"
+
+namespace TUIE {
+void handle_sigwinch(int) { engine::instance().on_resize(); }
+
+Terminal::Terminal() {
+    std::signal(SIGWINCH, handle_sigwinch);
+    size = get_terminal_size();
+    enable_raw_mode();
+    hide_cursor();
+    enter_fullscreen();
+    fixedCout.flush();
+}
+
+Terminal::~Terminal() {
+    std::signal(SIGWINCH, SIG_DFL);
+    exit_fullscreen();
+    show_cursor();
+    disable_raw_mode();
+    fixedCout.flush();
+}
+
+void Terminal::enable_raw_mode() {
+    tcgetattr(STDIN_FILENO, &original_termios);
+    struct termios raw = original_termios;
+
+    // Disable ECHO: don't show what you type
+    // Disable ICANON: read byte by byte, no wait for 'Enter'
+    raw.c_lflag &= ~(ECHO | ICANON);
+
+    // Disable flow control (Ctrl+S, Ctrl+Q) and translation of CR to NL
+    raw.c_iflag &= ~(IXON | ICRNL | BRKINT | INPCK | ISTRIP);
+
+    // Set timeout for the read (so it doesn't block the engine)
+    raw.c_cc[VMIN] = 0;   // Read 0 or more bytes
+    raw.c_cc[VTIME] = 1;  // Wait maximum 100ms (0.1s)
+
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+}
+
+void Terminal::disable_raw_mode() { tcsetattr(STDIN_FILENO, TCSAFLUSH, &original_termios); }
+
+void Terminal::on_resize() { size = get_terminal_size(); }
+
+TerminalSize Terminal::get_terminal_size() {
+    winsize w;
+    ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+    return {w.ws_col, w.ws_row};
+}
+
+void Terminal::hide_cursor() { fixedCout << "\033[?25l"; }
+void Terminal::show_cursor() { fixedCout << "\033[?25h"; }
+void Terminal::enter_fullscreen() { fixedCout << "\033[?1049h"; }
+void Terminal::exit_fullscreen() { fixedCout << "\033[?1049l"; }
+void Terminal::clear_screen() { fixedCout << "\033[2J"; }
+void Terminal::reset_cursor() { fixedCout << "\033[H"; }
+void Terminal::reset_colors() { fixedCout << "\033[0m"; }
+void Terminal::set_cursor_position(int x, int y) { fixedCout << "\033[" << y << ";" << x << "H"; }
+void Terminal::set_background_color(Color color) {
+    fixedCout << "\033[48;2;" << (int)color.r << ";" << (int)color.g << ";" << (int)color.b << "m";
+}
+void Terminal::set_foreground_color(Color color) {
+    fixedCout << "\033[38;2;" << (int)color.r << ";" << (int)color.g << ";" << (int)color.b << "m";
+}
+
+}  // namespace TUIE
