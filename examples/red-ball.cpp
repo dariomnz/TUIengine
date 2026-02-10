@@ -10,12 +10,12 @@ int main() {
     int dy = 1;
     engine.set_fps(60);
     while (!engine.window_should_close()) {
+        engine.begin_draw();
         TUIE::TerminalSize size = engine.get_terminal_size();
         int height = size.height / 10;
         int width = height * 2;
-        engine.begin_draw();
-        engine.clear_background(TUIE::WHITE);
-        engine.draw_rect(x, y, width, height, TUIE::RED);
+        engine.draw_rect(0, 0, size.width, size.height, TUIE::WHITE, '.');
+        engine.draw_rect(x, y, width, height, TUIE::RED, 'O', TUIE::RED);
         engine.draw_text(
             0, 0,
             "FPS: " + std::to_string(engine.get_target_fps()) + " Real FPS: " + std::to_string(engine.get_real_fps()),

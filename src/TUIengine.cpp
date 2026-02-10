@@ -16,47 +16,47 @@
 namespace TUIE {
 
 engine::engine()
-    : terminal(),
-      buffer{TerminalBuffer(terminal.size.width, terminal.size.height),
-             TerminalBuffer(terminal.size.width, terminal.size.height)} {
+    : m_terminal(),
+      m_buffer{TerminalBuffer(m_terminal.size.width, m_terminal.size.height),
+               TerminalBuffer(m_terminal.size.width, m_terminal.size.height)} {
     std::signal(SIGINT, exit);
 }
 
-TerminalSize engine::get_terminal_size() { return terminal.size; }
+TerminalSize engine::get_terminal_size() { return m_terminal.size; }
 
-void engine::on_resize() { resize_flag = true; }
+void engine::on_resize() { m_resize_flag = true; }
 
 bool engine::window_should_close() { return false; }
 
-void engine::set_fps(int fps) { this->fps = fps; }
+void engine::set_fps(int fps) { this->m_fps = fps; }
 
 void engine::clear_background(Color color) {
-    TerminalBuffer& current_buffer = get_current_buffer();
-    for (int i = 0; i < terminal.size.height; i++) {
-        for (int j = 0; j < terminal.size.width; j++) {
-            current_buffer.set_cell(j, i, TerminalCell{' ', color, color});
-        }
-    }
+    draw_rect(0, 0, m_terminal.size.width, m_terminal.size.height, color);
+    // TerminalBuffer& current_buffer = get_current_buffer();
+    // for (int i = 0; i < terminal.size.height; i++) {
+    //     for (int j = 0; j < terminal.size.width; j++) {
+    //         current_buffer.set_cell(j, i, TerminalCell{' ', color, color});
+    //     }
+    // }
 }
 
 void engine::begin_draw() {
     debug_msg("Begin draw");
-    start_frame_time = std::chrono::high_resolution_clock::now();
-    if (resize_flag) {
-        terminal.on_resize();
-        buffer[0].resize(terminal.size.width, terminal.size.height);
-        buffer[1].resize(terminal.size.width, terminal.size.height);
-        resize_flag = false;
+    m_start_frame_time = std::chrono::high_resolution_clock::now();
+    if (m_resize_flag) {
+        m_terminal.on_resize();
+        m_buffer[m_current_buffer].resize(m_terminal.size.width, m_terminal.size.height);
+        m_resize_flag = false;
     }
 }
 
 void engine::end_draw() {
     draw_buffer();
-    current_buffer = next_buffer_index();
+    m_current_buffer = next_buffer_index();
     fixedCout.flush();
-    const auto target_time = std::chrono::microseconds(1000000 / fps);
-    const auto sleep_time = target_time - (std::chrono::high_resolution_clock::now() - start_frame_time);
-    real_fps =
+    const auto target_time = std::chrono::microseconds(1000000 / m_fps);
+    const auto sleep_time = target_time - (std::chrono::high_resolution_clock::now() - m_start_frame_time);
+    m_real_fps =
         1000.0f / (std::chrono::duration_cast<std::chrono::microseconds>(target_time - sleep_time).count() / 1000.0f);
     debug_msg("End draw sleep for "
               << std::chrono::duration_cast<std::chrono::microseconds>(sleep_time).count() / 1000.0 << "ms used "
@@ -70,6 +70,9 @@ void engine::end_draw() {
 void engine::draw_text(int x, int y, std::string_view text) {
     TerminalBuffer& current_buffer = get_current_buffer();
     for (int i = 0; i < text.size(); i++) {
+        if (!current_buffer.is_inside(x + i, y)) {
+            break;
+        }
         current_buffer.set_character(x + i, y, text[i]);
     }
 }
@@ -77,6 +80,9 @@ void engine::draw_text(int x, int y, std::string_view text) {
 void engine::draw_text(int x, int y, std::string_view text, Color foreground_color) {
     TerminalBuffer& current_buffer = get_current_buffer();
     for (int i = 0; i < text.size(); i++) {
+        if (!current_buffer.is_inside(x + i, y)) {
+            break;
+        }
         current_buffer.set_character(x + i, y, text[i]);
         current_buffer.set_foreground_color(x + i, y, foreground_color);
     }
@@ -85,22 +91,28 @@ void engine::draw_text(int x, int y, std::string_view text, Color foreground_col
 void engine::draw_text(int x, int y, std::string_view text, Color foreground_color, Color background_color) {
     TerminalBuffer& current_buffer = get_current_buffer();
     for (int i = 0; i < text.size(); i++) {
+        if (!current_buffer.is_inside(x + i, y)) {
+            break;
+        }
         current_buffer.set_cell(x + i, y, TerminalCell{text[i], foreground_color, background_color});
     }
 }
 
-void engine::draw_rect(int x, int y, int width, int height, Color color) {
+void engine::draw_rect(int x, int y, int width, int height, Color color, char character, Color character_color) {
     TerminalBuffer& current_buffer = get_current_buffer();
     for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
-            current_buffer.set_cell(x + j, y + i, TerminalCell{' ', color, color});
+            if (!current_buffer.is_inside(x + j, y + i)) {
+                break;
+            }
+            current_buffer.set_cell(x + j, y + i, TerminalCell{character, character_color, color});
         }
     }
 }
 
-TerminalBuffer& engine::get_current_buffer() { return buffer[current_buffer]; }
-TerminalBuffer& engine::get_back_buffer() { return buffer[next_buffer_index()]; }
-int engine::next_buffer_index() { return (current_buffer + 1) % 2; }
+TerminalBuffer& engine::get_current_buffer() { return m_buffer[m_current_buffer]; }
+TerminalBuffer& engine::get_back_buffer() { return m_buffer[next_buffer_index()]; }
+int engine::next_buffer_index() { return (m_current_buffer + 1) % 2; }
 
 void engine::draw_buffer() {
     // This function compare the current buffer with the previous buffer and only prints the changes
@@ -114,27 +126,30 @@ void engine::draw_buffer() {
 
     debug_msg("Drawing previous buffer\n" << previous_buffer);
     debug_msg("Drawing buffer\n" << current_buffer);
-    terminal.reset_cursor();
-    terminal.reset_colors();
+    m_terminal.reset_cursor();
+    m_terminal.reset_colors();
     for (int y = 0; y < current_buffer.get_height(); y++) {
         for (int x = 0; x < current_buffer.get_width(); x++) {
-            const auto current_cell = current_buffer.get_cell(x, y);
-            const auto previous_cell = previous_buffer.get_cell(x, y);
+            const TerminalCell current_cell = current_buffer.get_cell(x, y);
+            bool cells_equal = false;
+            if (previous_buffer.is_inside(x, y)) {
+                cells_equal = current_cell == previous_buffer.get_cell(x, y);
+            }
 
-            if (current_cell != previous_cell) {
+            if (!cells_equal) {
                 if (cursor_moved) {
-                    terminal.set_cursor_position(x + 1, y + 1);
+                    m_terminal.set_cursor_position(x + 1, y + 1);
                     cursor_moved = false;
                     debug_msg("Cursor moved to " << x << ", " << y + 1);
                 }
                 if (current_cell.background_color != last_bg || !first_bg) {
-                    terminal.set_background_color(current_cell.background_color);
+                    m_terminal.set_background_color(current_cell.background_color);
                     last_bg = current_cell.background_color;
                     first_bg = true;
                     debug_msg("Background color changed to " << current_cell.background_color);
                 }
                 if (current_cell.foreground_color != last_fg || !first_fg) {
-                    terminal.set_foreground_color(current_cell.foreground_color);
+                    m_terminal.set_foreground_color(current_cell.foreground_color);
                     last_fg = current_cell.foreground_color;
                     first_fg = true;
                     debug_msg("Foreground color changed to " << current_cell.foreground_color);

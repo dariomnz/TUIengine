@@ -13,7 +13,8 @@ void handle_sigwinch(int) { engine::instance().on_resize(); }
 Terminal::Terminal() : size(get_terminal_size()) {
     std::signal(SIGWINCH, handle_sigwinch);
     enable_raw_mode();
-    hide_cursor();
+    enable_cursor(false);
+    enable_line_wrapping(false);
     enter_fullscreen();
     fixedCout.flush();
 }
@@ -21,8 +22,12 @@ Terminal::Terminal() : size(get_terminal_size()) {
 Terminal::~Terminal() {
     std::signal(SIGWINCH, SIG_DFL);
     exit_fullscreen();
-    show_cursor();
+    enable_line_wrapping(true);
+    enable_cursor(true);
     disable_raw_mode();
+    reset_cursor();
+    reset_colors();
+    clear_screen();
     fixedCout.flush();
 }
 
@@ -54,19 +59,29 @@ TerminalSize Terminal::get_terminal_size() {
     return {w.ws_col, w.ws_row};
 }
 
-void Terminal::hide_cursor() { fixedCout << "\033[?25l"; }
-void Terminal::show_cursor() { fixedCout << "\033[?25h"; }
 void Terminal::enter_fullscreen() { fixedCout << "\033[?1049h"; }
 void Terminal::exit_fullscreen() { fixedCout << "\033[?1049l"; }
+void Terminal::enable_line_wrapping(bool enable) { fixedCout << (enable ? "\033[?7h" : "\033[?7l"); }
+void Terminal::enable_cursor(bool enable) { fixedCout << (enable ? "\033[?25h" : "\033[?25l"); }
 void Terminal::clear_screen() { fixedCout << "\033[2J"; }
 void Terminal::reset_cursor() { fixedCout << "\033[H"; }
 void Terminal::reset_colors() { fixedCout << "\033[0m"; }
+void Terminal::reset_foreground() { fixedCout << "\033[39m"; }
+void Terminal::reset_background() { fixedCout << "\033[49m"; }
 void Terminal::set_cursor_position(int x, int y) { fixedCout << "\033[" << y << ";" << x << "H"; }
 void Terminal::set_background_color(Color color) {
-    fixedCout << "\033[48;2;" << (int)color.r << ";" << (int)color.g << ";" << (int)color.b << "m";
+    if (color.without_color) {
+        reset_background();
+    } else {
+        fixedCout << "\033[48;2;" << (int)color.r << ";" << (int)color.g << ";" << (int)color.b << "m";
+    }
 }
 void Terminal::set_foreground_color(Color color) {
-    fixedCout << "\033[38;2;" << (int)color.r << ";" << (int)color.g << ";" << (int)color.b << "m";
+    if (color.without_color) {
+        reset_foreground();
+    } else {
+        fixedCout << "\033[38;2;" << (int)color.r << ";" << (int)color.g << ";" << (int)color.b << "m";
+    }
 }
 
 }  // namespace TUIE

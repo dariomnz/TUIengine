@@ -4,13 +4,13 @@ namespace TUIE {
 
 TerminalBuffer::TerminalBuffer(int width, int height) : width(width), height(height), buffer(width * height) {}
 
-void TerminalBuffer::resize(int new_width, int new_height) {
+void TerminalBuffer::resize(int new_width, int new_height, TerminalCell fill) {
     // This takes into account that the resize expands the buffer to the left and the bottom without breaking the old
     // buffer data, it also takes into account that the new size can be smaller than the old size
-    std::vector<TerminalCell> new_buffer(new_width * new_height);
+    std::vector<TerminalCell> new_buffer(new_width * new_height, fill);
     for (int i = 0; i < std::min(new_height, height); i++) {
         for (int j = 0; j < std::min(new_width, width); j++) {
-            new_buffer[get_index(j, i, new_width)] = buffer[get_index(j, i, width)];
+            new_buffer[get_index(j, i, new_width, new_height)] = buffer[get_index(j, i, width, height)];
         }
     }
     buffer.swap(new_buffer);
@@ -32,9 +32,19 @@ void TerminalBuffer::set_background_color(int x, int y, Color color) {
     buffer[get_index(x, y)].background_color = color;
 }
 
-inline int TerminalBuffer::get_index(int x, int y) const { return y * width + x; }
+inline int TerminalBuffer::get_index(int x, int y) const {
+    if (x < 0 || x >= width || y < 0 || y >= height) {
+        throw std::out_of_range("x or y is out of bounds");
+    }
+    return y * width + x;
+}
 
-inline int TerminalBuffer::get_index(int x, int y, int width) const { return y * width + x; }
+inline int TerminalBuffer::get_index(int x, int y, int width, int height) const {
+    if (x < 0 || x >= width || y < 0 || y >= height) {
+        throw std::out_of_range("x or y is out of bounds");
+    }
+    return y * width + x;
+}
 
 std::ostream& operator<<(std::ostream& os, const TerminalBuffer& buffer) {
     os << "Terminal buffer: Width: " << buffer.width << " Height: " << buffer.height << '\n';

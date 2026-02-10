@@ -27,12 +27,14 @@ class Terminal {
     void exit_fullscreen();
 
    public:
-    void hide_cursor();
-    void show_cursor();
+    void enable_line_wrapping(bool enable);
+    void enable_cursor(bool enable);
 
     void clear_screen();
     void reset_cursor();
     void reset_colors();
+    void reset_foreground();
+    void reset_background();
 
     void set_cursor_position(int x, int y);
     void set_background_color(Color color);

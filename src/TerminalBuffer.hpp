@@ -8,8 +8,8 @@ namespace TUIE {
 
 struct TerminalCell {
     char character = ' ';
-    Color foreground_color = WHITE;
-    Color background_color = BLACK;
+    Color foreground_color = TERMINAL_COLOR;
+    Color background_color = TERMINAL_COLOR;
 
     bool operator==(const TerminalCell& other) const {
         return character == other.character && foreground_color == other.foreground_color &&
@@ -28,7 +28,7 @@ class TerminalBuffer {
    public:
     TerminalBuffer(int width, int height);
 
-    void resize(int width, int height);
+    void resize(int width, int height, TerminalCell fill = {});
     TerminalCell get_cell(int x, int y) const;
     void set_cell(int x, int y, TerminalCell cell);
     void set_character(int x, int y, char character);
@@ -37,11 +37,12 @@ class TerminalBuffer {
 
    private:
     inline int get_index(int x, int y) const;
-    inline int get_index(int x, int y, int width) const;
+    inline int get_index(int x, int y, int width, int height) const;
 
    public:
     int get_width() const { return width; }
     int get_height() const { return height; }
+    bool is_inside(int x, int y) const { return x >= 0 && x < width && y >= 0 && y < height; }
 
    private:
     std::vector<TerminalCell> buffer;

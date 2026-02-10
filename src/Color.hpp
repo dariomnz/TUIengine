@@ -9,14 +9,17 @@ struct Color {
     uint8_t r;
     uint8_t g;
     uint8_t b;
+    bool without_color = false;
 
-    bool operator==(const Color& other) const { return r == other.r && g == other.g && b == other.b; }
+    bool operator==(const Color& other) const {
+        return r == other.r && g == other.g && b == other.b && without_color == other.without_color;
+    }
 
     bool operator!=(const Color& other) const { return !(*this == other); }
 
     friend std::ostream& operator<<(std::ostream& os, const Color& color) {
         os << "(" << static_cast<int>(color.r) << ", " << static_cast<int>(color.g) << ", " << static_cast<int>(color.b)
-           << ")";
+           << ", " << color.without_color << ")";
         return os;
     }
 };
@@ -29,5 +32,6 @@ constexpr Color MAGENTA = {255, 0, 255};
 constexpr Color CYAN = {0, 255, 255};
 constexpr Color WHITE = {255, 255, 255};
 constexpr Color BLACK = {0, 0, 0};
+constexpr Color TERMINAL_COLOR = {0, 0, 0, true};
 
 }  // namespace TUIE
