@@ -14,6 +14,9 @@ Terminal::Terminal() : size(get_terminal_size()) {
     std::signal(SIGWINCH, handle_sigwinch);
     enable_raw_mode();
     enable_cursor(false);
+    enable_mouse(true);
+    enable_mouse_move(true);
+    enable_bracketed_paste(true);
     enable_line_wrapping(false);
     enter_fullscreen();
     fixedCout.flush();
@@ -24,6 +27,9 @@ Terminal::~Terminal() {
     exit_fullscreen();
     enable_line_wrapping(true);
     enable_cursor(true);
+    enable_mouse(false);
+    enable_mouse_move(false);
+    enable_bracketed_paste(false);
     disable_raw_mode();
     reset_cursor();
     reset_colors();
@@ -37,7 +43,7 @@ void Terminal::enable_raw_mode() {
 
     // Disable ECHO: don't show what you type
     // Disable ICANON: read byte by byte, no wait for 'Enter'
-    raw.c_lflag &= ~(ECHO | ICANON);
+    raw.c_lflag &= ~(ECHO | ICANON | IEXTEN);
 
     // Disable flow control (Ctrl+S, Ctrl+Q) and translation of CR to NL
     raw.c_iflag &= ~(IXON | ICRNL | BRKINT | INPCK | ISTRIP);
@@ -63,6 +69,12 @@ void Terminal::enter_fullscreen() { fixedCout << "\033[?1049h"; }
 void Terminal::exit_fullscreen() { fixedCout << "\033[?1049l"; }
 void Terminal::enable_line_wrapping(bool enable) { fixedCout << (enable ? "\033[?7h" : "\033[?7l"); }
 void Terminal::enable_cursor(bool enable) { fixedCout << (enable ? "\033[?25h" : "\033[?25l"); }
+void Terminal::enable_mouse(bool enable) {
+    fixedCout << (enable ? "\033[?1000h\033[?1006h" : "\033[?1000l\033[?1006l");
+}
+void Terminal::enable_bracketed_paste(bool enable) { fixedCout << (enable ? "\033[?2004h" : "\033[?2004l"); }
+void Terminal::enable_mouse_move(bool enable) { fixedCout << (enable ? "\033[?1003h" : "\033[?1003l"); }
+
 void Terminal::clear_screen() { fixedCout << "\033[2J"; }
 void Terminal::reset_cursor() { fixedCout << "\033[H"; }
 void Terminal::reset_colors() { fixedCout << "\033[0m"; }

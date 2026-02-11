@@ -4,6 +4,7 @@
 
 #include "Color.hpp"
 #include "FixedOStream.hpp"
+#include "Input.hpp"
 #include "Terminal.hpp"
 #include "TerminalBuffer.hpp"
 
@@ -43,7 +44,11 @@ class engine {
     TerminalBuffer& get_back_buffer();
     int next_buffer_index();
 
+   public:
+    Input& get_input() { return m_input; }
+
    private:
+    Input m_input;
     Terminal m_terminal;
     int m_fps = 30;
     float m_real_fps = 30.0f;

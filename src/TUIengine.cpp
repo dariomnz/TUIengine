@@ -26,19 +26,11 @@ TerminalSize engine::get_terminal_size() { return m_terminal.size; }
 
 void engine::on_resize() { m_resize_flag = true; }
 
-bool engine::window_should_close() { return false; }
+bool engine::window_should_close() { return m_input.is_key_pressed(KEYS::ESCAPE) || m_input.is_key_pressed('q'); }
 
 void engine::set_fps(int fps) { this->m_fps = fps; }
 
-void engine::clear_background(Color color) {
-    draw_rect(0, 0, m_terminal.size.width, m_terminal.size.height, color);
-    // TerminalBuffer& current_buffer = get_current_buffer();
-    // for (int i = 0; i < terminal.size.height; i++) {
-    //     for (int j = 0; j < terminal.size.width; j++) {
-    //         current_buffer.set_cell(j, i, TerminalCell{' ', color, color});
-    //     }
-    // }
-}
+void engine::clear_background(Color color) { draw_rect(0, 0, m_terminal.size.width, m_terminal.size.height, color); }
 
 void engine::begin_draw() {
     debug_msg("Begin draw");
@@ -48,6 +40,8 @@ void engine::begin_draw() {
         m_buffer[m_current_buffer].resize(m_terminal.size.width, m_terminal.size.height);
         m_resize_flag = false;
     }
+    m_input.clear_events();
+    m_input.process_input();
 }
 
 void engine::end_draw() {

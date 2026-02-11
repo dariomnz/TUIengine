@@ -1,5 +1,9 @@
 
-set(EXAMPLE_NAMES "red-ball")
+set(EXAMPLE_NAMES 
+    "red-ball"
+    "less"
+    "draw"
+)
 
 
 foreach(EXAMPLE_NAME ${EXAMPLE_NAMES})

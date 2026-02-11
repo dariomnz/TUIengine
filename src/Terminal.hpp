@@ -29,6 +29,9 @@ class Terminal {
    public:
     void enable_line_wrapping(bool enable);
     void enable_cursor(bool enable);
+    void enable_mouse(bool enable);
+    void enable_bracketed_paste(bool enable);
+    void enable_mouse_move(bool enable);
 
     void clear_screen();
     void reset_cursor();
